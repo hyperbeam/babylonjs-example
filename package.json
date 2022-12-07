@@ -4,9 +4,17 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "build": "vite build",
+    "dev": "vite --host",
+    "preview": "vite preview --host",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "@hyperbeam/web": "^0.0.24",
+    "babylonjs": "^5.35.1",
+    "vite": "^3.2.5"
+  }
 }
