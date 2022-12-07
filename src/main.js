@@ -51,9 +51,11 @@ window.addEventListener("DOMContentLoaded", async () => {
 
     function audioTrackCb(audioTrack) {
       const stream = new MediaStream([audioTrack]);
-      const source =
-        BABYLON.Engine.audioEngine.audioContext.createMediaStreamSource(stream);
-      source.connect(BABYLON.Engine.audioEngine.audioContext.destination);
+      const sound = new BABYLON.Sound("sound", stream, scene, null, {
+        autoplay: true,
+        spatialSound: true,
+      });
+      sound.attachToMesh(plane);
     }
 
     const hyperbeam = await Hyperbeam(hyperbeamContainer, embedURL, {
