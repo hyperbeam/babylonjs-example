@@ -12,7 +12,7 @@ async function fetchEmbedUrl() {
   return json.url;
 }
 
-window.addEventListener("DOMContentLoaded", async () => {
+async function onWindowLoad() {
   const embedURL = await fetchEmbedUrl();
   const hyperbeamContainer = document.getElementById("hyperbeamContainer");
 
@@ -40,13 +40,24 @@ window.addEventListener("DOMContentLoaded", async () => {
     plane.material.emissiveColor = new BABYLON.Color3(1, 1, 1);
 
     function frameCb(frame) {
-      const videoTexture = new BABYLON.VideoTexture(
-        "videoTexture",
-        frame,
-        scene,
-        false
-      );
-      plane.material.diffuseTexture = videoTexture;
+      if (!plane.material.diffuseTexture) {
+        plane.material.diffuseTexture = BABYLON.RawTexture.CreateRGBTexture(
+          null,
+          frame.constructor === HTMLVideoElement
+            ? frame.videoWidth
+            : frame.width,
+          frame.constructor === HTMLVideoElement
+            ? frame.videoHeight
+            : frame.height,
+          scene,
+          false,
+          false // invertY is not working on chrome, so we need to vertically flip the texture manually.
+        );
+        // Flip the texture vertically.
+        plane.material.diffuseTexture.vScale = -1;
+        plane.material.diffuseTexture.vOffset = 1;
+      }
+      plane.material.diffuseTexture.update(frame);
     }
 
     function audioTrackCb(audioTrack) {
@@ -143,4 +154,6 @@ window.addEventListener("DOMContentLoaded", async () => {
   window.addEventListener("resize", () => {
     engine.resize();
   });
-});
+}
+
+window.addEventListener("load", onWindowLoad);
