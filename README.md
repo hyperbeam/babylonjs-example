@@ -1,6 +1,6 @@
 # babylonjs-example
 
-🖥️ Hyperbeam virtual computers in Babylon.js!
+🏛️ Hyperbeam virtual computers in Babylon.js!
 
 ## How to run
 
