@@ -69,78 +69,79 @@ async function onWindowLoad() {
       sound.attachToMesh(plane);
     }
 
-    const hyperbeam = await Hyperbeam(hyperbeamContainer, embedURL, {
-      frameCb,
-      audioTrackCb,
-    });
-
-    function handlePointer(type, evt, pickInfo) {
-      if (pickInfo.hit && pickInfo.pickedMesh === plane) {
-        hyperbeam.sendEvent({
-          type,
-          x: pickInfo.getTextureCoordinates().x,
-          y: 1 - pickInfo.getTextureCoordinates().y,
-          button: evt.button,
-        });
-      }
-    }
-
-    function handlePointerDown(evt, pickInfo) {
-      handlePointer("mousedown", evt, pickInfo);
+    function resumeAudioContext() {
       if (BABYLON.Engine.audioEngine.audioContext.state === "suspended")
         BABYLON.Engine.audioEngine.audioContext.resume();
     }
 
-    function handlePointerMove(evt, pickInfo) {
-      handlePointer("mousemove", evt, pickInfo);
-    }
-
-    function handlePointerUp(evt, pickInfo) {
-      handlePointer("mouseup", evt, pickInfo);
-    }
-
-    scene.onPointerObservable.add((pointerInfo) => {
+    function sendPointerEvent(pointerInfo, hyperbeam) {
       const { type, event, pickInfo } = pointerInfo;
+      if (!pickInfo.hit || pickInfo.pickedMesh !== plane) return;
       switch (type) {
         case BABYLON.PointerEventTypes.POINTERDOWN:
-          handlePointerDown(event, pickInfo);
-          break;
         case BABYLON.PointerEventTypes.POINTERMOVE:
-          handlePointerMove(event, pickInfo);
-          break;
         case BABYLON.PointerEventTypes.POINTERUP:
-          handlePointerUp(event, pickInfo);
+          {
+            const textureCoordinates = pickInfo.getTextureCoordinates();
+            if (!textureCoordinates) return;
+            hyperbeam.sendEvent({
+              type: {
+                [BABYLON.PointerEventTypes.POINTERDOWN]: "mousedown",
+                [BABYLON.PointerEventTypes.POINTERMOVE]: "mousemove",
+                [BABYLON.PointerEventTypes.POINTERUP]: "mouseup",
+              }[type],
+              x: textureCoordinates.x,
+              y: 1 - textureCoordinates.y,
+              button: event.button,
+            });
+          }
+          break;
+        case BABYLON.PointerEventTypes.POINTERWHEEL:
+          hyperbeam.sendEvent({
+            type: "wheel",
+            deltaX: event.deltaX,
+            deltaY: event.deltaY,
+          });
           break;
       }
-    });
-
-    function wheelHandler(evt) {
-      hyperbeam.sendEvent({
-        type: "wheel",
-        deltaX: evt.deltaX,
-        deltaY: evt.deltaY,
-      });
     }
 
-    plane.actionManager = new BABYLON.ActionManager(scene);
+    function onPointerObservable(pointerInfo, hyperbeam) {
+      if (pointerInfo.type === BABYLON.PointerEventTypes.POINTERDOWN) {
+        resumeAudioContext();
+      }
+      sendPointerEvent(pointerInfo, hyperbeam);
+    }
 
-    plane.actionManager.registerAction(
-      new BABYLON.ExecuteCodeAction(
-        BABYLON.ActionManager.OnPointerOverTrigger,
-        (evt) => {
-          canvas.addEventListener("wheel", wheelHandler);
+    let hyperbeamPromise;
+    let hyperbeam;
+    let pointerObservable;
+    scene.registerBeforeRender(async () => {
+      const distance = BABYLON.Vector3.Distance(
+        camera.globalPosition,
+        plane.position
+      );
+      if (distance < 25) {
+        if (!hyperbeamPromise) {
+          hyperbeamPromise = Hyperbeam(hyperbeamContainer, embedURL, {
+            frameCb,
+            audioTrackCb,
+          });
+          hyperbeam = await hyperbeamPromise;
+          pointerObservable = scene.onPointerObservable.add((pointerInfo) =>
+            onPointerObservable(pointerInfo, hyperbeam)
+          );
         }
-      )
-    );
-
-    plane.actionManager.registerAction(
-      new BABYLON.ExecuteCodeAction(
-        BABYLON.ActionManager.OnPointerOutTrigger,
-        (evt) => {
-          canvas.removeEventListener("wheel", wheelHandler);
+      } else {
+        if (hyperbeamPromise) {
+          hyperbeamPromise = null;
+          hyperbeam.destroy();
+          hyperbeam = null;
+          scene.onPointerObservable.remove(pointerObservable);
+          pointerObservable = null;
         }
-      )
-    );
+      }
+    });
 
     return scene;
   }
