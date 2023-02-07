@@ -113,6 +113,7 @@ async function onWindowLoad() {
       sendPointerEvent(pointerInfo, hyperbeam);
     }
 
+    // Loads Hyperbeam dynamically based on camera position.
     let hyperbeamPromise;
     let hyperbeam;
     let pointerObservable;
