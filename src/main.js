@@ -114,6 +114,7 @@ async function onWindowLoad() {
     }
 
     // Loads Hyperbeam dynamically based on camera position.
+    // Disconnects when the camera position is far away; important for optimizing local CPU and bandwidth resources
     let hyperbeamPromise;
     let hyperbeam;
     let pointerObservable;
